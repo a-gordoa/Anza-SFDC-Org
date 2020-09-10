@@ -1,5 +1,8 @@
 public class SpotifyAPIRequest {
 //This is a test
+//This is another test for the gitz
+//This is test 3
+
     private String parseTokenRequestJSON (HttpResponse response) {
 		Map<String,Object> authResponseMap = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
 		String token = string.valueOf(authResponseMap.get('access_token'));
