@@ -1,7 +1,7 @@
 public class SpotifyAPIRequest {
-//This is a test
-//This is another test for the gitz
-//This is test 3
+// This is a test for branch switching
+// I'm on the testBranch rn. 
+
 
     private String parseTokenRequestJSON (HttpResponse response) {
 		Map<String,Object> authResponseMap = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
