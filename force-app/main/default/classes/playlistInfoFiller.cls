@@ -1,7 +1,18 @@
 public class playlistInfoFiller {
-	
     
-    public void setPlaylistInfoFromSpotify(Playlist__c playlistRecord) {
+    private List<Playlist__c> DML_Playlist_List = new List<Playlist__c>();
+    
+    public void setPlaylistInfo (List<Playlist__c> PL_List) {
+        
+        for (Playlist__c PL : PL_List) {
+            spotifyAPICallAndRecordSet(PL);
+        }
+
+        update DML_Playlist_List;
+    }
+
+    @future(callout = true)
+    public static void spotifyAPICallAndRecordSet(Playlist__c playlistRecord) {
     	system.debug('Made it to playlistInfoFiller');
         
         // Requests info from Spotify via the Playlust Token and
@@ -17,6 +28,7 @@ public class playlistInfoFiller {
 		playlistRecord.Spotify_Token__c = requestedPL.playlisterSpotifyId(playlistMap);
         playlistRecord.DSP__c = 'Spotify';
         
+        DML_Playlist_List.add(playlistRecord);
+        
     }
-    
 }

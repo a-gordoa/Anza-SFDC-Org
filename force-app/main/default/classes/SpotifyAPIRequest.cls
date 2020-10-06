@@ -7,6 +7,7 @@ public class SpotifyAPIRequest {
         return token;
     }
     
+    //private static void
     
     public String returnAuthToken() {
 		//Temp auth token from Spotify to be sent to Get methods to Spotify 
@@ -95,13 +96,13 @@ public class SpotifyAPIRequest {
     
 
     /* The following methods get specific values from the Playlist info Map*/
-    public String getPlaylistName(Map<String,Object> playlist) {
+    public String playlistName(Map<String,Object> playlist) {
    		String name = string.valueOf(playlist.get('name'));
         system.debug(name);
         return name;
     }
     
-    public String getPlaylistDescription(Map<String,Object> playlist) {
+    public String playlistDescription(Map<String,Object> playlist) {
    		String description = string.valueOf(playlist.get('description'));
         system.debug(description);
         return description;
