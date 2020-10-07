@@ -95,57 +95,6 @@ public class SpotifyAPIRequest {
     
     
 
-    /* The following methods get specific values from the Playlist info Map*/
-    public String playlistName(Map<String,Object> playlist) {
-   		String name = string.valueOf(playlist.get('name'));
-        system.debug(name);
-        return name;
-    }
-    
-    public String playlistDescription(Map<String,Object> playlist) {
-   		String description = string.valueOf(playlist.get('description'));
-        system.debug(description);
-        return description;
-    }
-    
-    public String playlsterName(Map<String,Object> playlist) {
-        String name = innerObjectFieldRetriver ('owner', 'display_name', playlist);
-        system.debug(name);
-        return name;
-    }
-    
-	public String playlisterSpotifyId(Map<String,Object> playlist) {
-        String id = innerObjectFieldRetriver ('owner', 'id', playlist);
-        system.debug(id);
-        return id;
-	}
-    
-    public String playlistURL(Map<String,Object> playlist) {
-		String url = innerObjectFieldRetriver ('external_urls', 'spotify', playlist);
-		system.debug(url);
-        return url;
-	}
-    
-    public Integer playlistFollowerCount(Map<String,Object> playlist) {
-        String numString = innerObjectFieldRetriver ('followers', 'total', playlist);
-        Integer followers = Integer.valueOf(numString);
-        return followers;
-    }
-    
-    private String innerObjectFieldRetriver (String upperKey, String lowerKey, Map<String,Object> playlist) {
-        //used the following to get the inner object key/value 
-        //https://gist.github.com/TehNrd/4559623
-        String returnValue;
-        String jsonPlaylist = '[' + JSON.serialize(playlist.get(upperKey))+']';
-        List<Object> fieldList = (List<Object>)JSON.deserializeUntyped(jsonPlaylist);
-
-        for (Object fld : fieldList) {
-            Map<String,Object> data = (Map<String,Object>)fld;
-            returnValue = String.valueOf(data.get(lowerKey));
-        }
-        
-        return returnValue;
-    }
     
     
 }
