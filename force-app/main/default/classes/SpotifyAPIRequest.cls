@@ -61,8 +61,10 @@ public class SpotifyAPIRequest {
         // Formatted to get the following from Spotify
         // Name, External_URL (playlist url), Owners Name, Owners URL 
         // Owner Id, Follower Count, Playlist Description 
-        String fieldsToRetrieve = '?fields=name%2Cexternal_urls%2Cowner(display_name%2Cexternal_url%2Cid)%2Cfollowers(total)%2Cdescription';
-        
+        // Query below is what was used in Spotify Dev Consol 
+        // name,external_urls,owner(display_name,external_urls,id),followers(total),description,images
+        String fieldsToRetrieve = '?fields=name%2Cexternal_urls%2Cowner(display_name%2Cexternal_urls%2Cid)%2Cfollowers(total)%2Cdescription%2Cimages';
+                             
         // Binds required info for the call to the HttpRequest
         HttpRequest request = new HttpRequest();
         request.setEndpoint('https://api.spotify.com/v1/playlists/' + token + fieldsToRetrieve);
@@ -71,10 +73,9 @@ public class SpotifyAPIRequest {
         
 		// Sends HttpRequest to Spotify and gets back a JSON with playlist info 
 		Http binding = new Http();
-		HttpResponse playlistResponse = binding.send(request);
+        HttpResponse playlistResponse = binding.send(request);
         
-        
-        
+
         //system.debug(playlistResponse.getBody());
         if (playlistResponse.getStatusCode() == 200) {
            

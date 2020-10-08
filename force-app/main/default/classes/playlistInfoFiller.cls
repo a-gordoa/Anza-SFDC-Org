@@ -49,6 +49,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
     }
     
     private String playlistURL(Map<String,Object> playlist) {
+        System.debug('IMG MAde it here at least: ' + playlist);
         String url = innerObjectFieldRetriver ('external_urls', 'spotify', playlist);
         System.debug(url);
         return url;
@@ -59,6 +60,36 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         Integer followers = Integer.valueOf(numString);
         return followers;
  }
+    private String playlistImage(Map<String,Object> playlist) {
+        
+
+        // Gets image object from API query, which comes as an Object that contains 3 objects. 
+        // Each object contains the same url, but three different detault height/width sizes
+        Object objectOfObjects = playlist.get('images');
+        
+        // Serializes this object-of-objects into a JSON so that can be converted 
+        // into a List since there is no object.get('key') function for non-SObjects in Apex
+        String jsonStringForList = JSON.serialize(objectOfObjects);
+        
+        // Deserializes the Object-Of-Objects into a List of individual Objects
+        List<Object> objList = (List<Object>)JSON.deserializeUntyped(jsonStringForList);
+
+        // Retreives the first Object from the List
+        Object singleImageObj = objList.get(0);
+
+        // Serializes the object we pulled from the list into a JSON string again so that
+        // it can be converted into a Map<string,object>. This is done becuase the simple
+        // Objects (aka non-SObjects) don't have the get.('key') method that both Maps and 
+        // SObjects have 
+        String jsonStringForMap = JSON.serialize(singleImageObj);
+
+        // Converts JSON to Map, then pulls the 'url' key from the Map to be returned as a String
+        Map<String,Object> mapOfImageObject = (Map<String, Object>)JSON.deserializeUntyped(jsonStringForMap);
+        String urlString = string.valueOf(mapOfImageObject.get('url'));
+       
+       
+       return urlString;
+}
     
     // This is used to get the inner object key/value from objects in the playlst info map returned 
     // from Spotify, since there are key/value objects (maps) stored as values within the top layer of the Map. 
@@ -117,6 +148,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
             this.playlistRecord.Spotify_Token__c = this.playlistToken;
             this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
             this.playlistRecord.DSP__c = 'Spotify';  
+            this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
             this.playlistRecord.Account__c = acct.Id;
             system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);  
             
@@ -140,6 +172,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
             this.playlistRecord.Spotify_Token__c = this.playlistToken;
             this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
             this.playlistRecord.DSP__c = 'Spotify';  
+            this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
             // Assigns Master-detail link with the Account__c and account.Id from the SOQL'd account
             this.playlistRecord.Account__c = account.Id; 
 
