@@ -68,7 +68,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         Object objectOfObjects = playlist.get('images');
         
         // Serializes this object-of-objects into a JSON so that can be converted 
-        // into a List since there is no object.get('key') function for non-SObjects in Apex
+        // into a List<Object> since there is no object.get('key') function for non-SObjects in Apex
         String jsonStringForList = JSON.serialize(objectOfObjects);
         
         // Deserializes the Object-Of-Objects into a List of individual Objects
@@ -127,66 +127,89 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         // no results it will throw an error, rather than just store null. 
         List<Account> acctFinder = [SELECT Id, Name FROM Account WHERE Name =:playlsterName(playlistMap) LIMIT 1];
 
-        
+        // This is used to find whether there is already a playlist record that has the token being passed
+        // into the class. This will be used to determine wheather a insert or upsert
+        List<Playlist__c> playlistFinder = [SELECT Id, Name FROM Playlist__c WHERE Playlist__c.Spotify_Token__c =:this.playlistToken LIMIT 1];
+
+
+        // If the playlist record was to not be in the org already
+        if (playlistFinder.isEmpty()) {
 
         // This tests the acctFinder List to see if it's empty, and if that returns TRUE, then
         // there are no accounts that currently match the playlists owner, which means a new Account
         // needs to be created as well, since Playlist is the detail in a Master-Detail relationshp
         // with the Account object
-        if (acctFinder.isEmpty()) {
-             // This creates a new account using this instance method and
-            // assigns it the variable acct, and inserts it to the org
-            Account acct = createAccountRecord(playlistMap);
-            insert acct;
-            system.System.debug('This acount was created: ' + acct.Name);
+            if (acctFinder.isEmpty()) {
+                // This creates a new account using this instance method and
+                // assigns it the variable acct, and inserts it to the org
+                Account acct = createAccountRecord(playlistMap);
+                insert acct;
+                system.System.debug('This acount was created: ' + acct.Name);
 
-            // Assigns playlist properties using the parser methods defined in this class
-            this.playlistRecord.Name = playlistName(playlistMap);
-            this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
-            this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
-            this.playlistRecord.Description__c = playlistDescription(playlistMap);
-            this.playlistRecord.Spotify_Token__c = this.playlistToken;
-            this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
-            this.playlistRecord.DSP__c = 'Spotify';  
-            this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
-            this.playlistRecord.Account__c = acct.Id;
-            system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);  
-            
-            // inserts the Playlist__c record that was instantiated as a class variable when the 
-            // class was instantiated
-            insert this.playlistRecord;
-
-
-       } 
-        // If the SOQL query returned an account to acctFinder, then this set code will run 
-        // and 
-        else {
-            // The account variable is a class variable 
-            account = acctFinder.get(0);
-            system.System.debug(account);
-            // Assigns playlist properties using the parser methods defined in this class
-            this.playlistRecord.Name = playlistName(playlistMap);
-            this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
-            this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
-            this.playlistRecord.Description__c = playlistDescription(playlistMap);
-            this.playlistRecord.Spotify_Token__c = this.playlistToken;
-            this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
-            this.playlistRecord.DSP__c = 'Spotify';  
-            this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
-            // Assigns Master-detail link with the Account__c and account.Id from the SOQL'd account
-            this.playlistRecord.Account__c = account.Id; 
-
-            system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);
-            // Inserted playlist
-            insert this.playlistRecord;
+                // Assigns playlist properties using the parser methods defined in this class
+                this.playlistRecord.Name = playlistName(playlistMap);
+                this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
+                this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
+                this.playlistRecord.Description__c = playlistDescription(playlistMap);
+                this.playlistRecord.Spotify_Token__c = this.playlistToken;
+                this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
+                this.playlistRecord.DSP__c = 'Spotify';  
+                this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
+                this.playlistRecord.Account__c = acct.Id;
+                system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);  
                 
-       }
+                // inserts the Playlist__c record that was instantiated as a class variable when the 
+                // class was instantiated
+                insert this.playlistRecord;
 
+
+        } 
+            // If the SOQL query returned an account to acctFinder, then this set code will run 
+            // and 
+            else {
+                // The account variable is a class variable 
+                account = acctFinder.get(0);
+                system.System.debug(account);
+                // Assigns playlist properties using the parser methods defined in this class
+                this.playlistRecord.Name = playlistName(playlistMap);
+                this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
+                this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
+                this.playlistRecord.Description__c = playlistDescription(playlistMap);
+                this.playlistRecord.Spotify_Token__c = this.playlistToken;
+                this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
+                this.playlistRecord.DSP__c = 'Spotify';  
+                this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
+                // Assigns Master-detail link with the Account__c and account.Id from the SOQL'd account
+                this.playlistRecord.Account__c = account.Id; 
+
+                system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);
+                // Inserted playlist
+                insert this.playlistRecord;
+                    
+            }
+        } 
         
- 
+        // This route is taken if there was a playlist record already found with the 
+        // token passed into this class. An update will be performed in this case. 
+        else {
+            Playlist__c existingPlaylist = playlistFinder.get(0);
+            existingPlaylist.Name = playlistName(playlistMap);
+            existingPlaylist.Playlist_URL__c = playlistURL(playlistMap);
+            existingPlaylist.Followers__c = playlistFollowerCount(playlistMap);
+            existingPlaylist.Description__c = playlistDescription(playlistMap);
+            existingPlaylist.Spotify_Token__c = this.playlistToken;
+            existingPlaylist.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
+            existingPlaylist.DSP__c = 'Spotify';  
+            existingPlaylist.Image_URL_Holder__c = playlistImage(playlistMap);
+            
+            system.System.debug('This playlist will be inserted ' + existingPlaylist.Name);      
+
+            update existingPlaylist;
+
+        }
+
         
     }
-
 
 
 }
