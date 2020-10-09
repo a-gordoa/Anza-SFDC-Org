@@ -44,7 +44,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
     
     private String playlisterSpotifyId(Map<String,Object> playlist) {
         String id = innerObjectFieldRetriver('owner', 'id', playlist);
-        System.debug('Spotifyers NAme Is' + id);
+        System.debug('Spotifyers ID Is' + id);
         return id;
     }
     
@@ -60,6 +60,40 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         Integer followers = Integer.valueOf(numString);
         return followers;
  }
+    public String playlistSubmissionEmail(Map<String,Object> playlist) {
+        String description = playlistDescription(playlist);
+        // Finds the index for the end of the email
+        Integer comIndex = description.lastIndexOfIgnoreCase('.com') + 4;
+        
+        // ascii char value for @ is 64
+        // Finds the index for the @ symbol
+        Integer atIndex = description.lastIndexOfChar(64);
+        
+        // Will proceed if there is both an @ and .com in the description
+        // indicating there's an email
+        if ((comIndex != -1) && (atIndex != -1)) {
+
+            // finds the space before the email starts and gets index
+            Integer spacePreEmail = description.lastIndexOfChar(32,atIndex);
+
+            // Gets the length of the email address to pass into Mid()
+            Integer emailLength = comIndex -spacePreEmail;
+            
+            String email = description.mid(spacePreEmail,emailLength);
+            
+            system.debug(email);
+            return email;
+            
+        } 
+        // returns blank string if no email detected
+        else {
+            String emptyString = '';
+            return emptyString;
+        }
+        
+    
+    
+}
     private String playlistImage(Map<String,Object> playlist) {
         
 
@@ -125,11 +159,14 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         // This list is used to query the current SFDC org to see if an account already exists for the playlist
         // owner. The reason for List<Account> rater than Account is becuase if an SOQL query comes back with 
         // no results it will throw an error, rather than just store null. 
-        List<Account> acctFinder = [SELECT Id, Name FROM Account WHERE Name =:playlsterName(playlistMap) LIMIT 1];
+        List<Account> acctFinder = [SELECT Id, Name FROM Account WHERE Spotify_User_ID__c =:playlisterSpotifyId(playlistMap) LIMIT 1];
+        system.debug('This is the Map used to the SOQL ' + playlistMap);
+        system.debug('This was used to SOQL the Parent Account ' + playlisterSpotifyId(playlistMap));
+        system.debug(acctFinder);
 
         // This is used to find whether there is already a playlist record that has the token being passed
         // into the class. This will be used to determine wheather a insert or upsert
-        List<Playlist__c> playlistFinder = [SELECT Id, Name FROM Playlist__c WHERE Playlist__c.Spotify_Token__c =:this.playlistToken LIMIT 1];
+        List<Playlist__c> playlistFinder = [SELECT Id, Name, Account__c FROM Playlist__c WHERE Playlist__c.Spotify_Token__c =:this.playlistToken LIMIT 1];
 
 
         // If the playlist record was to not be in the org already
@@ -148,12 +185,13 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
 
                 // Assigns playlist properties using the parser methods defined in this class
                 this.playlistRecord.Name = playlistName(playlistMap);
+                this.playlistRecord.TestEmailField__c = playlistSubmissionEmail(playlistMap);
                 this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
                 this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
                 this.playlistRecord.Description__c = playlistDescription(playlistMap);
                 this.playlistRecord.Spotify_Token__c = this.playlistToken;
                 this.playlistRecord.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
-                this.playlistRecord.DSP__c = 'Spotify';  
+                this.playlistRecord.DSP__c = 'Spotify';
                 this.playlistRecord.Image_URL_Holder__c = playlistImage(playlistMap);
                 this.playlistRecord.Account__c = acct.Id;
                 system.System.debug('This playlist will be inserted ' + this.playlistRecord.Name);  
@@ -165,13 +203,14 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
 
         } 
             // If the SOQL query returned an account to acctFinder, then this set code will run 
-            // and 
+            // and assign the created playlist record to the existing account
             else {
                 // The account variable is a class variable 
                 account = acctFinder.get(0);
                 system.System.debug(account);
                 // Assigns playlist properties using the parser methods defined in this class
                 this.playlistRecord.Name = playlistName(playlistMap);
+                this.playlistRecord.TestEmailField__c = playlistSubmissionEmail(playlistMap);
                 this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
                 this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
                 this.playlistRecord.Description__c = playlistDescription(playlistMap);
@@ -192,6 +231,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
         // This route is taken if there was a playlist record already found with the 
         // token passed into this class. An update will be performed in this case. 
         else {
+            // Retrieves existing Playlist and updates info to most recent in Spotify
             Playlist__c existingPlaylist = playlistFinder.get(0);
             existingPlaylist.Name = playlistName(playlistMap);
             existingPlaylist.Playlist_URL__c = playlistURL(playlistMap);
@@ -201,10 +241,23 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
             existingPlaylist.Parent_Spotify_ID__c = playlisterSpotifyId(playlistMap);
             existingPlaylist.DSP__c = 'Spotify';  
             existingPlaylist.Image_URL_Holder__c = playlistImage(playlistMap);
+
+            // checks the returned email to be sure it doesn't override a
+            // current email address with a blank
+            if (playlistSubmissionEmail(playlistMap)!= '') {
+                existingPlaylist.TestEmailField__c = playlistSubmissionEmail(playlistMap);
+            }
             
             system.System.debug('This playlist will be inserted ' + existingPlaylist.Name);      
 
             update existingPlaylist;
+
+            // Retrieves Account from Playlist and updates info to most recent in Spotify
+            Account playlistUserAcount = [SELECT Name, ID FROM Account WHERE Id =:existingPlaylist.Account__c];
+            playlistUserAcount.Name = playlsterName(playlistMap);
+
+            update playlistUserAcount;
+
 
         }
 
