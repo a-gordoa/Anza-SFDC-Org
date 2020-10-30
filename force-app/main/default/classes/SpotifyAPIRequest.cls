@@ -63,7 +63,7 @@ public class SpotifyAPIRequest {
         // Owner Id, Follower Count, Playlist Description 
         // Query below is what was used in Spotify Dev Consol 
         // name,external_urls,owner(display_name,external_urls,id),followers(total),description,images
-        String fieldsToRetrieve = '?fields=name%2Cexternal_urls%2Cowner(display_name%2Cexternal_urls%2Cid)%2Cfollowers(total)%2Cdescription%2Cimages';
+        String fieldsToRetrieve = '?fields=name%2Cexternal_urls%2Cowner(display_name%2Cexternal_urls%2Cid)%2Cfollowers(total)%2Cdescription%2Cimages%2Ctracks';
                              
         // Binds required info for the call to the HttpRequest
         HttpRequest request = new HttpRequest();
