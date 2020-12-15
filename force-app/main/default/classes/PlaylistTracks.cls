@@ -1,96 +1,47 @@
 public class PlaylistTracks implements Queueable, Database.AllowsCallouts {
+    // Consider renaming class "ReleasedTrackChecker"
 
-    String trackName;
+    // This class has a single method that takes in a single playlist record 
+    // (via a List since it's the only way to pass in arguments in a queable calss)
+    // and a List of released track names. The playlist then has it's tracks searched
+    // for any of the released tracks and has it's checkbox updated accordingly. 
+
+    List<String> releasedTracks = new List<String>();
+    Playlist__c playlistRecord;
 
     // Constructor
-    public PlaylistTracks(String nameInput) {
-        this.trackName = nameInput;
+    public PlaylistTracks(List<Playlist__c> playlistRecordInput, List<String> releasedTrackInput) {
+        this.releasedTracks = releasedTrackInput;
+        this.playlistRecord = playlistRecordInput.get(0);
     }
     
- 
-
-    private Boolean isTracksInPlaylist(Map<String,Object> playlist, List<String> userTracks) {
-        List<String> trackList = new List<String>();
-
-
-        // Thw following several lines are there to get the individual track info into a Map that can
-        // be referenced. Since Spotify returns nested Objects in it's data structure, we have to  
-        // keep turning it into a JSON and converting it to objects each time we get down a layer in the 
-        // data structure becuase there is no way to reference the key/values using the standard 
-        // salesforce Object (as oppsed to sObject). 
-        //
-        // Takes the playlist map passed in and gets the "tracks" value (not to be confused with "track")
-        // This is the top level of the playlist object and the value of the key is a set of objects
-		Object topLevelTrackObject = playlist.get('tracks');
-		system.debug('topLevelTrackObject =' + topLevelTrackObject);
-
-        // Turns all of the value of the key "tracks:" into a json
-		String jsonStringForList = JSON.serialize(topLevelTrackObject); 
-		system.debug('jsonStringForList =' + jsonStringForList);	
-        
-        // Turns the keys and values within "tracks" into a Map
-		Map<String,Object> tracksObjMap = (Map<String,Object>)JSON.deserializeUntyped(jsonStringForList);
-		system.debug('tracksObjMap =' + tracksObjMap);
-        
-        // Get the "items:" value and stores it in an object. The object is a collection of the 
-        // info for each song in the playlist. Since the object is an object-of-objects 
-        // we use the JSON.serialize it's contents so that they can be converted into a List of objects
-        // which can be iterated through to get needed info from then. 
-		Object itemObj = tracksObjMap.get('items');
-		String jsonStringForTrack = JSON.serialize(itemObj);
-		system.debug('jsonStringForTrack =' + jsonStringForTrack);
-
-        // The itemList is a list of Objects, each of which contain the songs info in an object.
-        // The object can't be used to retreive info since we can't use the .get() method,
-        // so each of the objects will have to be converted to a JSON, then a Map to access
-        // the info
-		List<Object> itemList = (List<Object>)JSON.deserializeUntyped(jsonStringForTrack);
-		system.debug('itemList = ' + itemList);
-
-	    // Iterates through the List of individual songs in the Item level that have been turned into objects
-        for (Object iterObj : itemList ) {
-
-            // Takes the individual song from the "items" object and turns it into a JSON that can be used to 
-            // turn it into a Map with accessable info
-            String jsonForItemObj = JSON.serialize(iterObj);
-
-            // Takes JSON and turns into a Map with access to teh individual data pieces for the track
-            Map<String,Object> songMap = (Map<String,Object>)JSON.deserializeUntyped(jsonForItemObj);
-            system.debug('Song Map = ' + songMap);
-            
-            // Doesn the same as above, but one level deeper to get to the actual track info, as oppsed to
-            // album/user/date added info for the song in the playlst. 
-            String jsonForInnerTrack = JSON.serialize(songMap.get('track'));
-            Map<String,Object> trackDataMap = (Map<String,Object>)JSON.deserializeUntyped(jsonForInnerTrack);
-
-            // Converts the value of the name from an Object to a String
-            String trackName = string.valueOf(trackDataMap.get('name'));
-            
-            // Adds track name to a trackList (List<>), which will be a complete list of all tracks in playlist
-            trackList.add(trackName);
-            }
-
-        // Iterates thru the list of user tracks passed in
-        for (String iter : userTracks ) {
-
-            // if the playlist trackList contains the users track, return true
-            if (trackList.contains(iter)) {
-                return true;
-            }
-        }
-
-        // If no user tracks were found, return false
-        return false;
-    }
-
- 
-
-
     public void execute(QueueableContext context) {
     
         // Instantiates the Class used to handle the API call
         SpotifyAPIRequest requestedPL = new SpotifyAPIRequest();
-    
-    
+        System.debug(requestedPL);
+
+        // Gets token from playlist that was passed into the class when called/instanted elsewhere.
+        String playlistToken = playlistRecord.Spotify_Token__c;
+        
+        // Places playlist recieved from Spotify into a Map<String,Object>
+        Map<String,Object> playlistMap = requestedPL.getPlaylist(playlistToken);
+
+        // Calls PlaylistMapHandler which converts the tracks in the playlist data
+        // from nested objects to a map that is accessable. The isReleasedTrackInPlaylist 
+        // method iterates thru all of the tracks within that map and determines if 
+        // any of the tracks stored in the "releasedTracks" variable are found in the
+        // playlist returned from Spotify. 
+        PlaylistMapHandler PMH = new PlaylistMapHandler();
+        Boolean trackInPlaylistBool = PMH.isReleasedTrackInPlaylist(playlistMap,this.releasedTracks);
+        // If one of the tracks in the "releasedTracks" list is found in the playlist
+        // then isReleasedTrackInPlaylist returns True, if not then False is returned. 
+        // Then the checkbox on the record is set accordingly here. 
+        this.playlistRecord.Currently_Featuring_a_Released_Track__c = trackInPlaylistBool;
+        system.debug('In Class, Value on Record ' + this.playlistRecord.Currently_Featuring_a_Released_Track__c);
+        system.debug('In Class, Bool used to Assign ' + trackInPlaylistBool);
+
+        update this.playlistRecord;
+
     }
 }
