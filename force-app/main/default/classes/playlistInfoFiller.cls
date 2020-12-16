@@ -49,7 +49,6 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
     }
     
     private String playlistURL(Map<String,Object> playlist) {
-        System.debug('IMG MAde it here at least: ' + playlist);
         String url = innerObjectFieldRetriver ('external_urls', 'spotify', playlist);
         System.debug(url);
         return url;
@@ -185,7 +184,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
 
                 // Assigns playlist properties using the parser methods defined in this class
                 this.playlistRecord.Name = playlistName(playlistMap);
-                this.playlistRecord.TestEmailField__c = playlistSubmissionEmail(playlistMap);
+                this.playlistRecord.Submission_Email__c = playlistSubmissionEmail(playlistMap);
                 this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
                 this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
                 this.playlistRecord.Description__c = playlistDescription(playlistMap);
@@ -210,7 +209,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
                 system.System.debug(account);
                 // Assigns playlist properties using the parser methods defined in this class
                 this.playlistRecord.Name = playlistName(playlistMap);
-                this.playlistRecord.TestEmailField__c = playlistSubmissionEmail(playlistMap);
+                this.playlistRecord.Submission_Email__c = playlistSubmissionEmail(playlistMap);
                 this.playlistRecord.Playlist_URL__c = playlistURL(playlistMap);
                 this.playlistRecord.Followers__c = playlistFollowerCount(playlistMap);
                 this.playlistRecord.Description__c = playlistDescription(playlistMap);
@@ -245,7 +244,7 @@ public class playlistInfoFiller implements Queueable, Database.AllowsCallouts {
             // checks the returned email to be sure it doesn't override a
             // current email address with a blank
             if (playlistSubmissionEmail(playlistMap)!= '') {
-                existingPlaylist.TestEmailField__c = playlistSubmissionEmail(playlistMap);
+                existingPlaylist.Submission_Email__c = playlistSubmissionEmail(playlistMap);
             }
             
             system.System.debug('This playlist will be inserted ' + existingPlaylist.Name);      

@@ -48,7 +48,7 @@ public class PlaylistMapHandler {
 
             // Takes JSON and turns into a Map with access to teh individual data pieces for the track
             Map<String,Object> songMap = (Map<String,Object>)JSON.deserializeUntyped(jsonForItemObj);
-            system.debug('Song Map = ' + songMap);
+            //system.debug('Song Map = ' + songMap);
             
             // Doesn the same as above, but one level deeper to get to the actual track info, as oppsed to
             // album/user/date added info for the song in the playlst. 
